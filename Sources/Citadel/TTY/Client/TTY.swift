@@ -183,7 +183,7 @@ extension SSHClient {
 
         for (key, value) in environment {
             try await channel.triggerUserOutboundEvent(SSHChannelRequestEvent.EnvironmentRequest(
-                wantReply: true, name: key, value: value)
+                wantReply: false, name: key, value: value)
             )
         }
 
