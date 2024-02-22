@@ -171,7 +171,13 @@ extension SSHClient {
         let channel = try await eventLoop.flatSubmit {
             let createChannel = self.eventLoop.makePromise(of: Channel.self)
             self.session.sshHandler.createChannel(createChannel) { channel, _ in
-                channel.pipeline.addHandlers(handler)
+                for (key, value) in environment {
+                    channel.triggerUserOutboundEvent(
+                        SSHChannelRequestEvent.EnvironmentRequest(wantReply: false, name: key, value: value),
+                        promise: nil
+                    )
+                }
+                return channel.pipeline.addHandlers(handler)
             }
 
             self.eventLoop.scheduleTask(in: .seconds(15)) {
@@ -180,12 +186,6 @@ extension SSHClient {
 
             return createChannel.futureResult
         }.get()
-
-        for (key, value) in environment {
-            try await channel.triggerUserOutboundEvent(SSHChannelRequestEvent.EnvironmentRequest(
-                wantReply: false, name: key, value: value)
-            )
-        }
 
         if inShell {
             try await channel.triggerUserOutboundEvent(SSHChannelRequestEvent.ShellRequest(
